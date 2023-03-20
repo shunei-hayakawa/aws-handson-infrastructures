@@ -154,3 +154,156 @@ resource "aws_internet_gateway" "main" {
     "Name" = "sbcntr-igw"
   }
 }
+
+# Security Group
+resource "aws_security_group" "ingress" {
+  vpc_id = aws_vpc.main.id
+  name   = "ingress"
+  egress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+  }
+
+  ingress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+  }
+
+  ingress {
+    ipv6_cidr_blocks = ["::/0"]
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+  }
+
+  tags = {
+    "Name" = "sbcntr-sg-ingress"
+  }
+}
+
+resource "aws_security_group" "container" {
+  vpc_id = aws_vpc.main.id
+  name   = "container"
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.internal.id]
+  }
+
+  tags = {
+    Name = "sbcntr-sg-container"
+  }
+}
+
+resource "aws_security_group" "frontend_container" {
+  name   = "frontend-container"
+  vpc_id = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol        = "tcp"
+    from_port       = 80
+    to_port         = 80
+    security_groups = [aws_security_group.ingress.id]
+  }
+
+  tags = {
+    Name = "sbcntr-sg-frontend-container"
+  }
+}
+
+resource "aws_security_group" "management" {
+  name   = "management"
+  vpc_id = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "sbcntr-sg-management"
+  }
+}
+
+resource "aws_security_group" "internal" {
+  name   = "internal"
+  vpc_id = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend_container.id]
+  }
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.management.id]
+  }
+
+  tags = {
+    Name = "sbcntr-sg-internal"
+  }
+}
+
+resource "aws_security_group" "database" {
+  name   = "database"
+  vpc_id = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.container.id]
+  }
+
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.management.id]
+  }
+
+  tags = {
+    Name = "sbcntr-sg-db"
+  }
+}
+
