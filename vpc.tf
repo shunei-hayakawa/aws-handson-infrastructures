@@ -147,6 +147,28 @@ resource "aws_route_table_association" "management_1c" {
   route_table_id = aws_route_table.ingress.id
 }
 
+# VPC Endpoint Subnet, Route Table
+resource "aws_subnet" "private_egress_1a" {
+  cidr_block        = "10.0.248.0/24"
+  vpc_id            = aws_vpc.main.id
+  availability_zone = "ap-northeast-1a"
+  tags = {
+    "Name" = "sbcntr-subnet-private-egress-1a"
+    "Type" = "Isolated"
+  }
+}
+
+resource "aws_subnet" "private_egress_1c" {
+  cidr_block        = "10.0.249.0/24"
+  vpc_id            = aws_vpc.main.id
+  availability_zone = "ap-northeast-1c"
+  tags = {
+    "Name" = "sbcntr-subnet-private-egress-1c"
+    "Type" = "Isolated"
+  }
+}
+
+
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
@@ -307,3 +329,63 @@ resource "aws_security_group" "database" {
   }
 }
 
+resource "aws_security_group" "vpc_endpoint" {
+  name   = "sbcntr-sg-vpc-endpoint"
+  vpc_id = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.container.id, aws_security_group.frontend_container.id, aws_security_group.management.id]
+  }
+
+  tags = {
+    Name = "sbcntr-sg-vpc-endpoint"
+  }
+}
+
+# VPC Endpoint
+resource "aws_vpc_endpoint" "ecr_api" {
+  count = 0
+
+  service_name       = "com.amazonaws.ap-northeast1.ecr.api"
+  vpc_id             = aws_vpc.main.id
+  subnet_ids         = [aws_subnet.private_egress_1a.id, aws_subnet.private_egress_1c.id]
+  security_group_ids = [aws_security_group.vpc_endpoint.id]
+  vpc_endpoint_type  = "Interface"
+  tags = {
+    Name = "sbcntr-vpc-endpoint-ecr-api"
+  }
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  count = 0
+
+  service_name       = "com.amazonaws.ap-northeast1.ecr.dkr"
+  vpc_id             = aws_vpc.main.id
+  subnet_ids         = [aws_subnet.private_egress_1a.id, aws_subnet.private_egress_1c.id]
+  security_group_ids = [aws_security_group.vpc_endpoint.id]
+  vpc_endpoint_type  = "Interface"
+  tags = {
+    Name = "sbcntr-vpc-endpoint-ecr-dkr"
+  }
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  count = 0
+
+  service_name    = "com.amazonaws.ap-northeast1.s3"
+  vpc_id          = aws_vpc.main.id
+  route_table_ids = [aws_route_table.container.id]
+  tags = {
+    Name = "sbcntr-vpc-endpoint-s3"
+  }
+}
