@@ -356,7 +356,7 @@ resource "aws_security_group" "vpc_endpoint" {
 resource "aws_vpc_endpoint" "ecr_api" {
   count = 0
 
-  service_name       = "com.amazonaws.ap-northeast1.ecr.api"
+  service_name       = "com.amazonaws.ap-northeast-1.ecr.api"
   vpc_id             = aws_vpc.main.id
   subnet_ids         = [aws_subnet.private_egress_1a.id, aws_subnet.private_egress_1c.id]
   security_group_ids = [aws_security_group.vpc_endpoint.id]
@@ -369,7 +369,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
 resource "aws_vpc_endpoint" "ecr_dkr" {
   count = 0
 
-  service_name       = "com.amazonaws.ap-northeast1.ecr.dkr"
+  service_name       = "com.amazonaws.ap-northeast-1.ecr.dkr"
   vpc_id             = aws_vpc.main.id
   subnet_ids         = [aws_subnet.private_egress_1a.id, aws_subnet.private_egress_1c.id]
   security_group_ids = [aws_security_group.vpc_endpoint.id]
@@ -382,10 +382,23 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
 resource "aws_vpc_endpoint" "s3" {
   count = 0
 
-  service_name    = "com.amazonaws.ap-northeast1.s3"
+  service_name    = "com.amazonaws.ap-northeast-1.s3"
   vpc_id          = aws_vpc.main.id
   route_table_ids = [aws_route_table.container.id]
   tags = {
     Name = "sbcntr-vpc-endpoint-s3"
+  }
+}
+
+resource "aws_vpc_endpoint" "cloud_watch_logs" {
+  count = 0
+
+  service_name       = "com.amazonaws.ap-northeast-1.logs"
+  vpc_id             = aws_vpc.main.id
+  subnet_ids         = [aws_subnet.private_egress_1a.id, aws_subnet.private_egress_1c.id]
+  security_group_ids = [aws_security_group.vpc_endpoint.id]
+  vpc_endpoint_type  = "Interface"
+  tags = {
+    Name = "sbcntr-vpc-endpoint-logs"
   }
 }
